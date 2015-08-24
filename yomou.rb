@@ -5,10 +5,7 @@
 require 'rubygems'
 require 'nokogiri'
 require 'open-uri'
-
-yomou_url = 'http://ncode.syosetu.com/'
-
-fetch_wait = 5
+require 'optparse'
 
 def fetch_url url, filename
   open(filename, 'w') do |file|
@@ -31,6 +28,57 @@ def retryable(options = {}, &block)
   yield
 end
 
+def get_title_author page 
+  title = page.title
+# <div class="novel_writername">
+# 作者：<a href="http://mypage.syosetu.com/445622/">棚花尋平</a>
+# </div><!--novel_writername-->
+  author = page.css('div.novel_writername').first.css('a').first.content.gsub(/[\/\s]/,'')
+  return title, author
+end
+
+def get_text_ncode page
+# text fetch url
+# <li><a href="http://ncode.syosetu.com/txtdownload/top/ncode/534149/" onclick="javascript:window.open('http://ncode.syosetu.com/txtdownload/top/ncode/534149/','a','width=600,height=450'); return false;">TXTダウンロード</a></li>
+  text_ncode = nil 
+  page.css('div#novel_footer').first.css('li').each do |li| 
+    href = li.css('a').first.attribute('href').value 
+    if /txtdownload\/top\/ncode\/(\d+?)\// =~ href 
+      text_ncode = $1
+    end
+  end
+  return text_ncode
+end
+
+def get_latest_article_number page, yomou_code
+  latest_number = 0 
+  page.css('dd.subtitle > a').each do |subtitle_url| 
+    if /\/#{yomou_code}\/(\d+?)\// =~ subtitle_url.attribute('href').value 
+      n = $1.to_i 
+      latest_number = n > latest_number ? n : latest_number
+    end
+  end
+  return latest_number
+end
+
+
+def get_latest_file_number dir 
+  latest_file_number = 0 
+  Dir.open(dir).each do |file| 
+    if /(\d+?)\.txt/ =~ file 
+      n = $1.to_i 
+      latest_file_number = n > latest_file_number ? n : latest_file_number
+    end
+  end
+  return latest_file_number
+end
+
+########
+#
+
+yomou_url = 'http://ncode.syosetu.com/'
+fetch_wait = 5
+
 page_url = nil
 yomou_code = nil
 
@@ -38,60 +86,32 @@ arg = ARGV.shift
 if /^#{yomou_url}([^\/]+?)\// =~ arg
   url = arg.to_s
   yomou_code = $1.to_s
-else
-  # e.g. n4202cb
+elsif /^n[a-z0-9]+?/ =~ arg # e.g. n4202cb
   yomou_code = arg
   url = yomou_url + yomou_code + '/'
+else
+  puts "cannot parse args."
+  exit
 end
 
 page = Nokogiri::HTML(open(url))
-title = page.title
 
-# <div class="novel_writername">
-# 作者：<a href="http://mypage.syosetu.com/445622/">棚花尋平</a>
-# </div><!--novel_writername-->
-author = page.css('div.novel_writername').first.css('a').first.content.gsub(/[\/\s]/,'')
-
+title, author = get_title_author page
 puts "Checking #{title} [#{author}]"
-
-# text fetch url
-# <li><a href="http://ncode.syosetu.com/txtdownload/top/ncode/534149/" onclick="javascript:window.open('http://ncode.syosetu.com/txtdownload/top/ncode/534149/','a','width=600,height=450'); return false;">TXTダウンロード</a></li>
-text_ncode = nil
-page.css('div#novel_footer').first.css('li').each do |li|
-  href = li.css('a').first.attribute('href').value
-  if /txtdownload\/top\/ncode\/(\d+?)\// =~ href
-    text_ncode = $1
-  end
-end
-
+text_ncode = get_text_ncode page
 unless text_ncode
   puts "cannot get ncode"
   exit
 end
 
-latest_number = 0
-page.css('dd.subtitle > a').each do |subtitle_url|
-  if /\/#{yomou_code}\/(\d+?)\// =~ subtitle_url.attribute('href').value
-    n = $1.to_i
-    latest_number = n > latest_number ? n : latest_number
-  end
-end
-
 book_directory = "./#{title} [#{author}]"
 work_directory = "#{book_directory}/work/"
-
-if File.directory? work_directory
-else
+unless File.directory? work_directory
   FileUtils.mkdir_p work_directory
 end
 
-latest_file_number = 0
-Dir.open(work_directory).each do |file|
-  if /(\d+?)\.txt/ =~ file
-    n = $1.to_i
-    latest_file_number = n > latest_file_number ? n : latest_file_number
-  end
-end
+latest_number = get_latest_article_number page, yomou_code
+latest_file_number = get_latest_file_number work_directory
 
 puts "working in directory: #{work_directory}"
 puts "latest article #{latest_number}, exists file #{latest_file_number}"
