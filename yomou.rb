@@ -1,4 +1,5 @@
 #!/usr/bin/ruby
+# coding: utf-8
 #
 #
 
@@ -31,15 +32,20 @@ end
 def get_title_author page 
   title = page.title
 # <div class="novel_writername">
-# $B:n<T!'(B<a href="http://mypage.syosetu.com/445622/">$BC*2V?RJ?(B</a>
+# 作者：<a href="http://mypage.syosetu.com/445622/">棚花尋平</a>
 # </div><!--novel_writername-->
-  author = page.css('div.novel_writername').first.css('a').first.content.gsub(/[\/\s]/,'')
+  a = page.css('div.novel_writername')
+  begin
+    author = a.first.css('a').first.content.gsub(/[\/\s]/,'')
+  rescue
+    author = a.first.content.gsub(/作者：/,'').gsub(/[\/\s]/,'')
+  end
   return title, author
 end
 
 def get_text_ncode page
 # text fetch url
-# <li><a href="http://ncode.syosetu.com/txtdownload/top/ncode/534149/" onclick="javascript:window.open('http://ncode.syosetu.com/txtdownload/top/ncode/534149/','a','width=600,height=450'); return false;">TXT$B%@%&%s%m!<%I(B</a></li>
+# <li><a href="http://ncode.syosetu.com/txtdownload/top/ncode/534149/" onclick="javascript:window.open('http://ncode.syosetu.com/txtdownload/top/ncode/534149/','a','width=600,height=450'); return false;">TXTダウンロード</a></li>
   text_ncode = nil 
   page.css('div#novel_footer').first.css('li').each do |li| 
     href = li.css('a').first.attribute('href').value 
