@@ -20,7 +20,7 @@ File.open(bookfile, 'w') do |book|
   Dir.open(workdir).grep(/\d+?\.txt/).sort{|a,b| a.gsub(/\.txt/,'').to_i <=> b.gsub(/\.txt/,'').to_i }.each do |file|
     File.open("#{workdir}/#{file}") do |f|
       f.each do |i|
-        book.write i.gsub(/&quot;/,'"').gsub(/《/,'<<').gsub(/》/,'>>').gsub(/&lt;/,'<').gsub(/&gt;/,'>')
+        book.write i.gsub(/&quot;/,'"').gsub(/《/,'<<').gsub(/》/,'>>').gsub(/&lt;/,'<').gsub(/&gt;/,'>').gsub(/&amp;/,'&')
       end
       book.puts "\n\n" 
     end
