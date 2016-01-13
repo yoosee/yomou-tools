@@ -83,7 +83,7 @@ end
 #
 
 yomou_url = 'http://ncode.syosetu.com/'
-fetch_wait = 5
+fetch_wait = 10
 
 page_url = nil
 yomou_code = nil
@@ -128,7 +128,7 @@ text_ncode_url = "http://ncode.syosetu.com/txtdownload/dlstart/ncode/#{text_ncod
   text_url_parameter = "?no=#{n}&hankaku=0&code=utf-8&kaigyo=CRLF" 
   text_url = "#{text_ncode_url}/#{text_url_parameter}"
   filename = "#{work_directory}/#{n}.txt"
-  puts "fetch #{n}: #{text_url}"
+  puts "fetch #{n}/#{latest_number}: #{text_url}"
   retryable(:tries => 3, :on => OpenURI::HTTPError, :wait => 10) do
     fetch_url text_url, filename
   end
