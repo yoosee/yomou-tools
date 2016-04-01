@@ -17,11 +17,12 @@ def fetch_url url, filename
 end
 
 def retryable(options = {}, &block)
-  opts = { :tries => 1, :on => Exception, :wait => 3}.merge(options)
+  opts = { :tries => 3, :on => Exception, :wait => 10}.merge(options)
   retry_exception, retries, wait_time = opts[:on], opts[:tries], opts[:wait]
   begin
     return yield
   rescue retry_exception
+    puts "[Retry] on #{retry_exception.inspect} (#{retries}/#{opts[:tries]})"
     sleep wait_time
     retry if (retries -= 1) > 0
   end
