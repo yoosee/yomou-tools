@@ -120,7 +120,6 @@ end
 latest_number = get_latest_article_number page, yomou_code
 latest_file_number = get_latest_file_number work_directory
 
-puts "working in directory: #{work_directory}"
 puts "latest article #{latest_number}, exists file #{latest_file_number}"
 
 text_ncode_url = "http://ncode.syosetu.com/txtdownload/dlstart/ncode/#{text_ncode}/"
