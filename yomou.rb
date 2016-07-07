@@ -68,7 +68,6 @@ def get_latest_article_number page, yomou_code
   return latest_number
 end
 
-
 def get_latest_file_number dir 
   latest_file_number = 0 
   Dir.open(dir).each do |file| 
@@ -80,11 +79,19 @@ def get_latest_file_number dir
   return latest_file_number
 end
 
+def get_last_update page
+  last_update = nil
+  page.xpath("//meta[@name='WWWC']/@content").each do |attr|
+    last_update = attr.to_s
+  end
+  last_update
+end
+
 ########
 #
 
 yomou_url = 'http://ncode.syosetu.com/'
-fetch_wait = 10
+fetch_wait = 15
 
 page_url = nil
 yomou_code = nil
@@ -104,7 +111,8 @@ end
 page = Nokogiri::HTML(open(url))
 
 title, author = get_title_author page
-puts "Checking #{title} [#{author}]"
+last_update = get_last_update page
+puts "Checking #{title} [#{author}] (last update: #{last_update})"
 text_ncode = get_text_ncode page
 unless text_ncode
   puts "cannot get ncode"
@@ -129,7 +137,7 @@ text_ncode_url = "http://ncode.syosetu.com/txtdownload/dlstart/ncode/#{text_ncod
   text_url = "#{text_ncode_url}/#{text_url_parameter}"
   filename = "#{work_directory}/#{n}.txt"
   puts "fetch #{n}/#{latest_number}: #{text_url}"
-  retryable(:tries => 3, :on => OpenURI::HTTPError, :wait => 10) do
+  retryable(:tries => 3, :on => (OpenURI::HTTPError||SocketError), :wait => fetch_wait) do
     fetch_url text_url, filename
   end
   sleep fetch_wait
