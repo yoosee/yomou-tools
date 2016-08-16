@@ -8,6 +8,12 @@ require 'nokogiri'
 require 'open-uri'
 require 'optparse'
 
+
+FETCH_WAIT = 15
+N_RETRY = 4
+YOMOU_BASE_URL = 'http://ncode.syosetu.com/'
+TEXT_BASE_URL  = 'http://ncode.syosetu.com/txtdownload/dlstart/ncode/'
+
 def fetch_url url, filename
   open(filename, 'w') do |file|
     open(url) do |data|
@@ -32,9 +38,9 @@ end
 
 def get_title_author page 
   title = page.title
-# <div class="novel_writername">
-# 作者：<a href="http://mypage.syosetu.com/445622/">棚花尋平</a>
-# </div><!--novel_writername-->
+  # <div class="novel_writername">
+  # 作者：<a href="http://mypage.syosetu.com/445622/">棚花尋平</a>
+  # </div><!--novel_writername-->
   a = page.css('div.novel_writername')
   begin
     author = a.first.css('a').first.content.gsub(/[\/\s]/,'')
@@ -45,8 +51,8 @@ def get_title_author page
 end
 
 def get_text_ncode page
-# text fetch url
-# <li><a href="http://ncode.syosetu.com/txtdownload/top/ncode/534149/" onclick="javascript:window.open('http://ncode.syosetu.com/txtdownload/top/ncode/534149/','a','width=600,height=450'); return false;">TXTダウンロード</a></li>
+  # text fetch url
+  # <li><a href="http://ncode.syosetu.com/txtdownload/top/ncode/534149/" onclick="javascript:window.open('http://ncode.syosetu.com/txtdownload/top/ncode/534149/','a','width=600,height=450'); return false;">TXTダウンロード</a></li>
   text_ncode = nil 
   page.css('div#novel_footer').first.css('li').each do |li| 
     href = li.css('a').first.attribute('href').value 
@@ -87,22 +93,46 @@ def get_last_update page
   last_update
 end
 
-########
-#
+def update_infofile filename, title, author, update, run
+  f = File.open(filename,"w")
+  f.puts "title: #{title}"
+  f.puts "author: #{author}"
+  f.puts "last_updated: #{update}"
+  f.puts "last_run: #{run}"
+  f.close
+end
 
-yomou_url = 'http://ncode.syosetu.com/'
-fetch_wait = 15
+def fetch_texts work_directory, text_ncode, n_start, n_end
+
+  text_ncode_url = "#{TEXT_BASE_URL}#{text_ncode}/"
+
+  (n_start .. n_end).each do |n|
+    text_url_parameter = "?no=#{n}&hankaku=0&code=utf-8&kaigyo=CRLF" 
+    text_url = "#{text_ncode_url}/#{text_url_parameter}"
+    filename = "#{work_directory}/#{n}.txt"
+    puts "fetch #{n}/#{n_end}: #{text_url}"
+    retryable(:tries => N_RETRY, :on => (OpenURI::HTTPError||SocketError), :wait => FETCH_WAIT) do
+      fetch_url text_url, filename
+    end
+    sleep FETCH_WAIT
+  end
+
+end
+
+########################
+# Main
+########################
 
 page_url = nil
 yomou_code = nil
 
 arg = ARGV.shift
-if /^#{yomou_url}([^\/]+?)\// =~ arg
+if /^#{YOMOU_BASE_URL}([^\/]+?)\// =~ arg
   url = arg.to_s
   yomou_code = $1.to_s
 elsif /^n[a-z0-9]+?/ =~ arg # e.g. n4202cb
   yomou_code = arg
-  url = yomou_url + yomou_code + '/'
+  url = YOMOU_BASE_URL + yomou_code + '/'
 else
   puts "cannot parse args."
   exit
@@ -110,36 +140,26 @@ end
 
 page = Nokogiri::HTML(open(url))
 
-title, author = get_title_author page
-last_update = get_last_update page
-puts "Checking #{title} [#{author}] (last update: #{last_update})"
-text_ncode = get_text_ncode page
+title, author = get_title_author(page)
+last_update = get_last_update(page)
+puts "Checking #{title} [#{author}] '#{yomou_code}' (last update: #{last_update})"
+text_ncode = get_text_ncode(page)
 unless text_ncode
-  puts "cannot get ncode"
+  puts "cannot get ncode for #{arg} (#{title}, #{author}). exit."
   exit
 end
 
-book_directory = "./#{title} [#{author}]"
+#book_directory = "./work/#{title} [#{author}]"
+book_directory = "./work/#{yomou_code}"
 work_directory = "#{book_directory}/work/"
 unless File.directory? work_directory
   FileUtils.mkdir_p work_directory
 end
+info_filename = "#{book_directory}/info.txt"
+update_infofile(info_filename, title, author, last_update, Time.now.to_s)
 
 latest_number = get_latest_article_number page, yomou_code
 latest_file_number = get_latest_file_number work_directory
-
 puts "latest article #{latest_number}, exists file #{latest_file_number}"
-
-text_ncode_url = "http://ncode.syosetu.com/txtdownload/dlstart/ncode/#{text_ncode}/"
-
-(latest_file_number+1 .. latest_number).each do |n|
-  text_url_parameter = "?no=#{n}&hankaku=0&code=utf-8&kaigyo=CRLF" 
-  text_url = "#{text_ncode_url}/#{text_url_parameter}"
-  filename = "#{work_directory}/#{n}.txt"
-  puts "fetch #{n}/#{latest_number}: #{text_url}"
-  retryable(:tries => 3, :on => (OpenURI::HTTPError||SocketError), :wait => fetch_wait) do
-    fetch_url text_url, filename
-  end
-  sleep fetch_wait
-end
+fetch_texts(work_directory, text_ncode, latest_file_number+1, latest_number)
 
