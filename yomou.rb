@@ -126,6 +126,8 @@ end
 page_url = nil
 yomou_code = nil
 
+#OpenURI::HTTPError
+
 arg = ARGV.shift
 if /^#{YOMOU_BASE_URL}([^\/]+?)\// =~ arg
   url = arg.to_s
@@ -134,11 +136,16 @@ elsif /^n[a-z0-9]+?/ =~ arg # e.g. n4202cb
   yomou_code = arg
   url = YOMOU_BASE_URL + yomou_code + '/'
 else
-  puts "cannot parse args."
+  puts "[Error] cannot parse args."
   exit
 end
 
-page = Nokogiri::HTML(open(url))
+begin 
+  page = Nokogiri::HTML(open(url))
+rescue OpenURI::HTTPError
+  puts "[Error] #{$!} on fetching #{yomou_code}"
+  exit
+end
 
 title, author = get_title_author(page)
 last_update = get_last_update(page)
