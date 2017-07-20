@@ -6,6 +6,7 @@ require 'fileutils'
 require 'shellwords'
 
 YOMOU = 'yomou.rb'
+KAKUYOMU = 'kakuyomu.rb'
 MARGE = 'yomou_merger.rb'
 BOOKLIST = 'booklist.txt'
 BOOKDIR  = 'books/'
@@ -14,7 +15,11 @@ puts "Fetching books start ===== #{Time.now}"
 File.open(BOOKLIST).each do |l|
   url, title = l.split(/ +/, 2)
   next unless /^http/ =~ url
-  system "ruby #{YOMOU} #{url}"
+  if /yomou/ =~ url 
+    system "ruby #{YOMOU} #{url}"
+  elsif /kakuyomu/ =~ url
+    system "ruby #{KAKUYOMU} #{url}"
+  end
   sleep 20
 end
 puts "Fetching books end   ===== #{Time.now}"
