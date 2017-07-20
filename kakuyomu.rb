@@ -185,11 +185,6 @@ FileUtils.mkdir_p work_directory unless File.directory? work_directory
 latest_file_number = get_latest_file_number work_directory
 fetch_texts(work_directory, page, latest_file_number)
 
-puts "lastfile# #{latest_file_number}"
-
 info_filename = "#{book_directory}/info.txt"
 update_infofile(info_filename, title, author, last_update, Time.now.to_s)
-
-#latest_number = get_latest_article_number page
-#puts "latest article #{latest_number}, exists file #{latest_file_number}"
 
