@@ -13,7 +13,7 @@ end
 is_escape_ruby = false
 
 infofile = "#{bookdir}/info.txt"
-workdir = "#{bookdir}/work/"
+workdir = "#{bookdir}/work"
 
 info = Hash[ File.open(infofile).each_line.map {|l| l.chomp.split(":\s", 2) }]
 
