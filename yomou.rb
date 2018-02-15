@@ -4,15 +4,18 @@
 #
 
 require 'rubygems'
+require 'time'
+require 'date'
 require 'nokogiri'
 require 'open-uri'
+require 'fileutils'
 require 'optparse'
-
 
 FETCH_WAIT = 15
 N_RETRY = 4
-YOMOU_BASE_URL = 'http://ncode.syosetu.com/'
-TEXT_BASE_URL  = 'http://ncode.syosetu.com/txtdownload/dlstart/ncode/'
+YOMOU_BASE_URL = 'https://ncode.syosetu.com/'
+YOMOU_BASE_DOMAIN = 'ncode.syosetu.com'
+TEXT_BASE_URL  = 'https://ncode.syosetu.com/txtdownload/dlstart/ncode/'
 
 def fetch_url url, filename
   open(filename, 'w') do |file|
@@ -102,6 +105,18 @@ def update_infofile filename, title, author, update, run
   f.close
 end
 
+def read_infofile filename
+  info = {}
+  return info unless File.exists? filename
+  File.open(filename) do |f|
+    f.each do |l|
+      k = l.split(":",2)
+      info[k[0].strip] = k[1].strip
+    end
+  end
+  return info
+end
+
 def fetch_texts work_directory, text_ncode, n_start, n_end
 
   text_ncode_url = "#{TEXT_BASE_URL}#{text_ncode}/"
@@ -126,10 +141,19 @@ end
 page_url = nil
 yomou_code = nil
 
-#OpenURI::HTTPError
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: yomou.rb [options] URL_OR_CODE"
+  opts.on("-v", "--verbose", "Run verbosely") do |o|
+    options[:verbose] = o
+  end
+  opts.on("-s NDAYS", "--skip-old=NDAYS", "Skip executing the entry last-run update was NDAYS before.") do |o|
+    options[:skip] = o
+  end
+end.parse!
 
 arg = ARGV.shift
-if /^#{YOMOU_BASE_URL}([^\/]+?)\// =~ arg
+if /^https?:\/\/#{YOMOU_BASE_DOMAIN}\/([^\/]+)\/?/ =~ arg
   url = arg.to_s
   yomou_code = $1.to_s
 elsif /^n[a-z0-9]+?/ =~ arg # e.g. n4202cb
@@ -138,6 +162,20 @@ elsif /^n[a-z0-9]+?/ =~ arg # e.g. n4202cb
 else
   puts "[Error] cannot parse args."
   exit
+end
+
+book_directory = "./work/#{yomou_code}"
+work_directory = "#{book_directory}/work/"
+unless File.directory? work_directory
+  FileUtils.mkdir_p work_directory
+end
+info_filename = "#{book_directory}/info.txt"
+info = read_infofile info_filename
+if options[:skip]
+  if info["last_updated"] && (Time.now - Time.parse(info["last_updated"]))/(60*60*24) > options[:skip].to_i
+    puts "Last run informs last update was older than #{options[:skip]} days (#{info["last_updated"]}), skipping."
+    exit
+  end
 end
 
 begin 
@@ -156,13 +194,6 @@ unless text_ncode
   exit
 end
 
-#book_directory = "./work/#{title} [#{author}]"
-book_directory = "./work/#{yomou_code}"
-work_directory = "#{book_directory}/work/"
-unless File.directory? work_directory
-  FileUtils.mkdir_p work_directory
-end
-info_filename = "#{book_directory}/info.txt"
 update_infofile(info_filename, title, author, last_update, Time.now.to_s)
 
 latest_number = get_latest_article_number page, yomou_code
