@@ -23,8 +23,10 @@ OptionParser.new do |op|
   end
 end.parse!
 
+booklist = BOOKLIST 
+
 puts "Fetching books start ===== #{Time.now}"
-File.open(BOOKLIST).each do |l|
+File.open(booklist).each do |l|
   url, title = l.split(/ +/, 2)
   next unless /^http/ =~ url
   if /syosetu\.com/ =~ url 
@@ -49,7 +51,7 @@ Dir.open("./work").each do |n|
       (File.exist?("#{d}/#{bookname}") && 
        File.new("#{d}/#{bookname}").size > File.new("#{BOOKDIR}/#{bookname}").size)
     puts "Updated: #{bookname}" 
-    FileUtils.mv "#{d}/#{bookname}", BOOKDIR
+    FileUtils.cp "#{d}/#{bookname}", BOOKDIR
   end
 end
 puts "Building books end ===== #{Time.now}"
