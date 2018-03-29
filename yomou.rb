@@ -96,12 +96,14 @@ def get_last_update page
   last_update
 end
 
-def update_infofile filename, title, author, update, run
+def update_infofile filename, title, author, update, run, new_stories
   f = File.open(filename,"w")
   f.puts "title: #{title}"
   f.puts "author: #{author}"
   f.puts "last_updated: #{update}"
   f.puts "last_run: #{run}"
+  f.puts "new_stories: #{new_stories}"
+
   f.close
 end
 
@@ -194,10 +196,12 @@ unless text_ncode
   exit
 end
 
-update_infofile(info_filename, title, author, last_update, Time.now.to_s)
-
 latest_number = get_latest_article_number page, yomou_code
 latest_file_number = get_latest_file_number work_directory
-puts "latest article #{latest_number}, exists file #{latest_file_number}"
+new_stories = latest_number - latest_file_number
+
+update_infofile(info_filename, title, author, last_update, Time.now.to_s, new_stories)
+puts "Files: [#{latest_file_number}/#{latest_number}] (#{new_stories} new)"
+
 fetch_texts(work_directory, text_ncode, latest_file_number+1, latest_number)
 
