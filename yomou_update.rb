@@ -44,7 +44,6 @@ File.open(booklist).each do |l|
   flag = (flag.to_i == 1 ? true : false)
   next unless /^http/ =~ url
   code = get_code url
-  codeflag[code] = flag
   if /syosetu\.com/ =~ url 
     opts = options[:nskip] ? "-s #{options[:nskip]}" : ""
     system "ruby #{YOMOU} #{opts} #{url}"
@@ -53,9 +52,15 @@ File.open(booklist).each do |l|
   end
 
   d = "work/#{code}"
-  system "ruby #{MARGE} #{Shellwords.escape d}"
   infofile = "#{d}/info.txt"
   info = Hash[ File.open(infofile).each_line.map {|l| l.chomp.split(":\s", 2) }]
+  unless info['new_stories'].to_i > 0
+    puts "no new stories updated." if options[:verbose]
+    sleep 3
+    next
+  end
+
+  system "ruby #{MARGE} #{Shellwords.escape d}"
   bookname = "#{info['title']}\ \[#{info['author']}\].txt"
 
   if ! File.exist?("#{BOOKDIR}/#{bookname}") || 
@@ -63,7 +68,7 @@ File.open(booklist).each do |l|
        File.new("#{d}/#{bookname}").size > File.new("#{BOOKDIR}/#{bookname}").size)
     puts "Updated: #{bookname}" if options[:verbose]
     FileUtils.cp "#{d}/#{bookname}", BOOKDIR
-    if codeflag[n]
+    if flag
       puts "Copied to updates: #{bookname}" if options[:verbose]
       FileUtils.cp "#{d}/#{bookname}", UPDATEDIR
     end
