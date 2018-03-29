@@ -13,6 +13,16 @@ BOOKLIST = 'booklist.txt'
 BOOKDIR  = 'books'
 UPDATEDIR = 'updates'
 
+def get_code url
+  code = nil
+  if /syosetu\.com/ =~ url && /^https?:\/\/ncode\.syosetu\.com\/([^\/]+)\/?/ =~ url
+    code = $1.to_s
+  elsif /kakuyomu\.jp/ =~ url && /^https:\/\/kakuyomu\.jp\/works\/(\d+)\/?/ =~ url
+    code = $1.to_s
+  end
+  code
+end
+
 options = {}
 OptionParser.new do |op|
   op.banner = "Usage: yomou_batch.rb [options]"
@@ -26,9 +36,9 @@ end.parse!
 
 booklist = BOOKLIST 
 
-codeflag = []
+codeflag = {}
 
-puts "Fetching books start ===== #{Time.now}"
+puts "Fetch and build books start ===== #{Time.now}"
 File.open(booklist).each do |l|
   url, flag, title = l.split(/ +/, 3)
   flag = (flag.to_i == 1 ? true : false)
@@ -41,37 +51,24 @@ File.open(booklist).each do |l|
   elsif /kakuyomu\.jp/ =~ url
     system "ruby #{KAKUYOMU} #{url}"
   end
-  sleep 20
-end
-puts "Fetching books end   ===== #{Time.now}"
 
-puts "Building books start ===== #{Time.now}"
-Dir.open("./work").each do |n|
-  d = "work/#{n}"
-  next if ! File.directory? d or /\/\./ =~ d
+  d = "work/#{code}"
   system "ruby #{MARGE} #{Shellwords.escape d}"
   infofile = "#{d}/info.txt"
   info = Hash[ File.open(infofile).each_line.map {|l| l.chomp.split(":\s", 2) }]
   bookname = "#{info['title']}\ \[#{info['author']}\].txt"
+
   if ! File.exist?("#{BOOKDIR}/#{bookname}") || 
       (File.exist?("#{d}/#{bookname}") && 
        File.new("#{d}/#{bookname}").size > File.new("#{BOOKDIR}/#{bookname}").size)
-    puts "Updated: #{bookname}" 
+    puts "Updated: #{bookname}" if options[:verbose]
     FileUtils.cp "#{d}/#{bookname}", BOOKDIR
     if codeflag[n]
+      puts "Copied to updates: #{bookname}" if options[:verbose]
       FileUtils.cp "#{d}/#{bookname}", UPDATEDIR
     end
   end
+  sleep 10
 end
-puts "Building books end ===== #{Time.now}"
-
-def get_code url
-  code = nil
-  if /syosetu\.com/ =~ url && /^https?:\/\/ncode\.syosetu\.com\/([^\/]+)\/?/ =~ url
-    code = $1.to_s
-  elsif /kakuyomu\.jp/ =~ url && /^https:\/\/kakuyomu\.jp\/works\/(\d+)\/?/ =~ url
-    code = $1.to_s
-  end
-  code
-end
+puts "Fetch and build books end   ===== #{Time.now}"
 
