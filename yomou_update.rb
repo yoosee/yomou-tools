@@ -69,6 +69,7 @@ File.open(booklist).each do |l|
     puts "Updated: #{bookname}" if options[:verbose]
     FileUtils.cp "#{d}/#{bookname}", BOOKDIR
     if flag
+      FileUtils.mkdir UPDATEDIR unless Dir.exists? UPDATEDIR
       puts "Copied to updates: #{bookname}" if options[:verbose]
       FileUtils.cp "#{d}/#{bookname}", UPDATEDIR
     end
