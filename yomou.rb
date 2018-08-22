@@ -96,6 +96,22 @@ def get_last_update page
   last_update
 end
 
+def list_updated page, yomou_code, last_run
+  updated = Array.new
+  puts "in list_upadted"
+  page.css('dl.novel_sublist2').each do |s|
+    if !s.xpath('dt/span').empty? && /(\d{4}\/\d\d\/\d\d \d\d:\d\d)/ =~ s.xpath('dt/span').attribute('title').value
+      t = Time.parse($1)
+      next if t <= last_run
+      if /\/#{yomou_code}\/(\d+?)\// =~ s.xpath('dd/a').attribute('href').value
+        n = $1.to_i
+        updated.push n
+      end
+    end
+  end
+  return updated
+end
+
 def update_infofile filename, title, author, update, run, new_stories
   f = File.open(filename,"w")
   f.puts "title: #{title}"
@@ -118,6 +134,7 @@ def read_infofile filename
   end
   return info
 end
+
 
 def fetch_texts work_directory, text_ncode, n_start, n_end
 
@@ -151,6 +168,9 @@ OptionParser.new do |opts|
   end
   opts.on("-s NDAYS", "--skip-old=NDAYS", "Skip executing the entry last-run update was NDAYS before.") do |o|
     options[:skip] = o
+  end
+  opts.on("-u", "--update-revised", "Fetch updated content since last run time") do |o|
+    options[:update] = o
   end
 end.parse!
 
@@ -199,6 +219,16 @@ end
 latest_number = get_latest_article_number page, yomou_code
 latest_file_number = get_latest_file_number work_directory
 new_stories = latest_number - latest_file_number
+
+info = read_infofile info_filename
+
+###
+if options[:update]
+  list = list_updated page, yomou_code, Time.parse(info['last_run'])
+  p list
+  exit
+end
+###
 
 update_infofile(info_filename, title, author, last_update, Time.now.to_s, new_stories)
 puts "Files: [#{latest_file_number}/#{latest_number}] (#{new_stories} new)"
