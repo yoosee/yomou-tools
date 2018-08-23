@@ -13,11 +13,16 @@ require 'optparse'
 
 FETCH_WAIT = 15
 N_RETRY = 4
+RETRY_WAIT = 10
 YOMOU_BASE_URL = 'https://ncode.syosetu.com/'
 YOMOU_BASE_DOMAIN = 'ncode.syosetu.com'
 TEXT_BASE_URL  = 'https://ncode.syosetu.com/txtdownload/dlstart/ncode/'
 
 def fetch_url url, filename
+  if File.exists? filename
+    rotate_file filename
+  end
+  return 
   open(filename, 'w') do |file|
     open(url) do |data|
       file.write data.read
@@ -25,8 +30,28 @@ def fetch_url url, filename
   end
 end
 
+def rotate_file filename # shift file e.g. 10.txt => 10.1.txt, 10.1.txt => 10.2.txt
+  f_base = filename.gsub(/\.txt/, '')
+  n = 1
+  f = "#{f_base}.#{n}.txt"
+  while File.exists? f
+    n += 1
+    f = "#{f_base}.#{n}.txt"
+  end
+  for l in n..1 do
+    if l == 1
+      orig = filename
+    else
+      orig = "#{f_base}.#{l-1}.txt"
+    end
+    dest = "#{f_base}.#{l}.txt"
+    puts "rotate file #{orig} to #{dest}"
+    FileUtils.mv(orig, dest)
+  end
+end
+
 def retryable(options = {}, &block)
-  opts = { :tries => 3, :on => Exception, :wait => 10}.merge(options)
+  opts = { :tries => N_RETRY, :on => Exception, :wait => RETRY_WAIT}.merge(options)
   retry_exception, retries, wait_time = opts[:on], opts[:tries], opts[:wait]
   begin
     return yield
@@ -135,19 +160,20 @@ def read_infofile filename
   return info
 end
 
+def fetch_text work_directory, text_ncode, n
+  text_url_parameter = "?no=#{n}&hankaku=0&code=utf-8&kaigyo=CRLF" 
+  text_url = "#{TEXT_BASE_URL}#{text_ncode}/#{text_url_parameter}"
+  filename = "#{work_directory}/#{n}.txt"
+  puts text_url
+  retryable(:tries => N_RETRY, :on => (OpenURI::HTTPError||SocketError), :wait => FETCH_WAIT) do
+    fetch_url text_url, filename
+  end
+end
 
 def fetch_texts work_directory, text_ncode, n_start, n_end
-
-  text_ncode_url = "#{TEXT_BASE_URL}#{text_ncode}/"
-
   (n_start .. n_end).each do |n|
-    text_url_parameter = "?no=#{n}&hankaku=0&code=utf-8&kaigyo=CRLF" 
-    text_url = "#{text_ncode_url}/#{text_url_parameter}"
-    filename = "#{work_directory}/#{n}.txt"
-    puts "fetch #{n}/#{n_end}: #{text_url}"
-    retryable(:tries => N_RETRY, :on => (OpenURI::HTTPError||SocketError), :wait => FETCH_WAIT) do
-      fetch_url text_url, filename
-    end
+    print "fetch #{n}/#{n_end}: "
+    fetch_text work_directory, text_ncode, n
     sleep FETCH_WAIT
   end
 
@@ -169,7 +195,7 @@ OptionParser.new do |opts|
   opts.on("-s NDAYS", "--skip-old=NDAYS", "Skip executing the entry last-run update was NDAYS before.") do |o|
     options[:skip] = o
   end
-  opts.on("-u", "--update-revised", "Fetch updated content since last run time") do |o|
+  opts.on("-u", "--update-all-revised", "Fetch all updated content") do |o|
     options[:update] = o
   end
 end.parse!
@@ -221,14 +247,15 @@ latest_file_number = get_latest_file_number work_directory
 new_stories = latest_number - latest_file_number
 
 info = read_infofile info_filename
+last_run = info['last_run']
+last_run = 0 if options[:update]
 
-###
-if options[:update]
-  list = list_updated page, yomou_code, Time.parse(info['last_run'])
-  p list
-  exit
+list = list_updated page, yomou_code, Time.parse(last_run)
+puts "Updating revised entries..." unless list.empty?
+list.each do |n|
+  fetch_text work_directory, text_ncode, n
+  sleep FETCH_WAIT
 end
-###
 
 update_infofile(info_filename, title, author, last_update, Time.now.to_s, new_stories)
 puts "Files: [#{latest_file_number}/#{latest_number}] (#{new_stories} new)"
