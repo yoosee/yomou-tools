@@ -22,7 +22,6 @@ def fetch_url url, filename
   if File.exists? filename
     rotate_file filename
   end
-  return 
   open(filename, 'w') do |file|
     open(url) do |data|
       file.write data.read
