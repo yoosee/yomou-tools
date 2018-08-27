@@ -122,7 +122,6 @@ end
 
 def list_updated page, yomou_code, last_run
   updated = Array.new
-  puts "in list_upadted"
   page.css('dl.novel_sublist2').each do |s|
     if !s.xpath('dt/span').empty? && /(\d{4}\/\d\d\/\d\d \d\d:\d\d)/ =~ s.xpath('dt/span').attribute('title').value
       t = Time.parse($1)

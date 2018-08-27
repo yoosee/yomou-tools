@@ -29,7 +29,7 @@ line = 0
 File.open(bookfile, 'w') do |book| 
   book.puts "#{info['title']} [#{info['author']}]"
   book.puts 
-  Dir.open(workdir).grep(/\d+?\.txt/).sort{|a,b| a.gsub(/\.txt/,'').to_i <=> b.gsub(/\.txt/,'').to_i }.each do |file|
+  Dir.open(workdir).grep(/^\d+?\.txt/).sort{|a,b| a.gsub(/\.txt/,'').to_i <=> b.gsub(/\.txt/,'').to_i }.each do |file|
     File.open("#{workdir}/#{file}") do |f|
       f.each do |i|
         i = i.gsub(/《/,'<<').gsub(/》/,'>>') if is_escape_ruby
