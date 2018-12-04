@@ -248,11 +248,15 @@ info = read_infofile info_filename
 last_run = info['last_run']
 last_run = 0 if options[:update]
 
-list = list_updated page, yomou_code, Time.parse(last_run)
-puts "Updating revised entries..." unless list.empty?
-list.each do |n|
-  fetch_text work_directory, text_ncode, n
-  sleep FETCH_WAIT
+begin 
+  list = list_updated page, yomou_code, Time.parse(last_run) 
+  puts "Updating revised entries..." unless list.empty?
+  list.each do |n|
+    fetch_text work_directory, text_ncode, n
+    sleep FETCH_WAIT
+  end
+rescue 
+  puts "Update error: #{yomou_code}"
 end
 
 update_infofile(info_filename, title, author, last_update, Time.now.to_s, new_stories)

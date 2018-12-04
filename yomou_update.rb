@@ -53,7 +53,7 @@ File.open(booklist).each do |l|
 
   d = "work/#{code}"
   infofile = "#{d}/info.txt"
-  info = Hash[ File.open(infofile).each_line.map {|l| l.chomp.split(":\s", 2) }]
+  info = Hash[ File.open(infofile).each_line.map {|l| l.chomp.split(":\s", 2) }] if File.exists? infofile
   unless info['new_stories'].to_i > 0
     puts "no new stories updated." if options[:verbose]
     sleep 3
