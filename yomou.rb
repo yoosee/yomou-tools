@@ -17,13 +17,15 @@ RETRY_WAIT = 10
 YOMOU_BASE_URL = 'https://ncode.syosetu.com/'
 YOMOU_BASE_DOMAIN = 'ncode.syosetu.com'
 TEXT_BASE_URL  = 'https://ncode.syosetu.com/txtdownload/dlstart/ncode/'
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
 
 def fetch_url url, filename
   if File.exists? filename
     rotate_file filename
   end
   open(filename, 'w') do |file|
-    open(url) do |data|
+    open(url,
+         "User-Agent" => USER_AGENT) do |data|
       file.write data.read
     end
   end
@@ -80,10 +82,16 @@ end
 def get_text_ncode page
   # text fetch url
   # <li><a href="http://ncode.syosetu.com/txtdownload/top/ncode/534149/" onclick="javascript:window.open('http://ncode.syosetu.com/txtdownload/top/ncode/534149/','a','width=600,height=450'); return false;">TXTダウンロード</a></li>
+  #
+  # TXTダウンロードが表示されない場合の暫定解
+  # https://syosetu.com/ihantsuhou/input/ncode/1329153/
   text_ncode = nil 
   page.css('div#novel_footer').first.css('li').each do |li| 
+    p li
     href = li.css('a').first.attribute('href').value 
     if /txtdownload\/top\/ncode\/(\d+?)\// =~ href 
+      text_ncode = $1
+    elsif /input\/ncode\/(\d+?)\// =~ href 
       text_ncode = $1
     end
   end
