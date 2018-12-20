@@ -87,7 +87,6 @@ def get_text_ncode page
   # https://syosetu.com/ihantsuhou/input/ncode/1329153/
   text_ncode = nil 
   page.css('div#novel_footer').first.css('li').each do |li| 
-    p li
     href = li.css('a').first.attribute('href').value 
     if /txtdownload\/top\/ncode\/(\d+?)\// =~ href 
       text_ncode = $1
