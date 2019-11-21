@@ -21,7 +21,7 @@ unless info['title'] && info['author']
   puts "no title or author found."
   exit
 end
-bookfile = "#{bookdir}/#{info['title']}\ \[#{info['author']}\].txt"
+bookfile = "#{bookdir}/#{info['title'].gsub(/\//, '／')}\ \[#{info['author']}\].txt"
 
 puts "merging files into #{bookfile}"
 count_file = 0
