@@ -8,7 +8,7 @@ require 'optparse'
 
 YOMOU = 'yomou.rb'
 KAKUYOMU = 'kakuyomu.rb'
-MARGE = 'yomou_merger.rb'
+MERGER = 'yomou_merger.rb'
 BOOKLIST = 'booklist.txt'
 BOOKDIR  = 'books'
 UPDATEDIR = 'updates'
@@ -49,23 +49,30 @@ File.open(booklist).each do |l|
     system "ruby #{YOMOU} #{opts} #{url}"
   elsif /kakuyomu\.jp/ =~ url
     system "ruby #{KAKUYOMU} #{url}"
+  else
+    next
   end
 
   d = "work/#{code}"
   infofile = "#{d}/info.txt"
   info = Hash[ File.open(infofile).each_line.map {|l| l.chomp.split(":\s", 2) }] if File.exists? infofile
+  if info.empty?
+    puts "no info recorded. aborting."
+    next
+  end
   unless info['new_stories'].to_i > 0
     puts "no new stories updated." if options[:verbose]
     sleep 3
     next
   end
 
-  system "ruby #{MARGE} #{Shellwords.escape d}"
+  system "ruby #{MERGER} #{Shellwords.escape d}"
   bookname = "#{info['title']}\ \[#{info['author']}\].txt"
 
   if ! File.exist?("#{BOOKDIR}/#{bookname}") || 
       (File.exist?("#{d}/#{bookname}") && 
-       File.new("#{d}/#{bookname}").size > File.new("#{BOOKDIR}/#{bookname}").size)
+       File.new("#{d}/#{bookname}").mtime > File.new("#{BOOKDIR}/#{bookname}").mtime)
+#       File.new("#{d}/#{bookname}").size > File.new("#{BOOKDIR}/#{bookname}").size)
     puts "Updated: #{bookname}" if options[:verbose]
     FileUtils.cp "#{d}/#{bookname}", BOOKDIR
     if flag
