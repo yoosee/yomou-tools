@@ -10,14 +10,30 @@ require 'nokogiri'
 require 'open-uri'
 require 'fileutils'
 require 'optparse'
+require 'shellwords'
 
-FETCH_WAIT = 15
-N_RETRY = 4
-RETRY_WAIT = 10
+YOMOU = 'yomou.rb'
+KAKUYOMU = 'kakuyomu.rb'
+MERGER = 'yomou_merger.rb'
+BOOKLIST = 'booklist.txt'
+BOOKDIR  = 'books'
+UPDATEDIR = 'updates'
+
+MAX_TITLES_RANK = 100
+
 YOMOU_BASE_URL = 'https://ncode.syosetu.com/'
 YOMOU_BASE_DOMAIN = 'ncode.syosetu.com'
 YOMOU_RANK_DOMAIN = 'yomou.syosetu.com'
-USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
+
+def get_code url
+  code = nil
+  if /syosetu\.com/ =~ url && /^#{YOMOU_BASE_URL}([^\/]+)\/?/ =~ url
+    code = $1.to_s
+#  elsif /kakuyomu\.jp/ =~ url && /^https:\/\/kakuyomu\.jp\/works\/(\d+)\/?/ =~ url
+#    code = $1.to_s
+  end
+  code
+end
 
 def list_ranking page
   rank = Array.new
@@ -58,11 +74,11 @@ if /^https?:\/\/#{YOMOU_BASE_DOMAIN}\/[^\/]+\/?/ =~ arg
 else
 end
 
-testfile = "ranktest.html"
+#testfile = "ranktest.html"
 
 begin 
-#  page = Nokogiri::HTML(open(rankpage_url))
-  page = Nokogiri::HTML(open(testfile))
+  page = Nokogiri::HTML(open(rankpage_url))
+#  page = Nokogiri::HTML(open(testfile))
 rescue OpenURI::HTTPError
   puts "[Error] #{$!} on fetching #{yomou_code}"
   exit
@@ -70,6 +86,30 @@ end
 
 ranklist = list_ranking page
 
+n = 0
 ranklist.each do |url|
+  code = get_code url
+  dir = "work/#{code}"
+  opts = ""
+  system "ruby #{YOMOU} #{opts} #{url}"
+  system "ruby #{MERGER} #{Shellwords.escape dir}"
+
+  infofile = "#{dir}/info.txt"
+  info = Hash[ File.open(infofile).each_line.map {|l| l.chomp.split(":\s", 2) }] if File.exists? infofile
+  bookname = "#{info['title']}\ \[#{info['author']}\].txt"
+  
+  if ! File.exist?("#{BOOKDIR}/#{bookname}") ||
+      (File.exist?("#{dir}/#{bookname}") &&
+       File.new("#{dir}/#{bookname}").mtime > File.new("#{BOOKDIR}/#{bookname}").mtime)
+    puts "Updated: #{bookname}" if options[:verbose]
+    FileUtils.cp "#{dir}/#{bookname}", BOOKDIR
+
+    FileUtils.mkdir UPDATEDIR unless Dir.exists? UPDATEDIR
+    puts "Copied to updates: #{bookname}" if options[:verbose]
+    FileUtils.cp "#{dir}/#{bookname}", UPDATEDIR
+  end
+
+  n += 1
+  break if n > MAX_TITLES_RANK
 end
 
