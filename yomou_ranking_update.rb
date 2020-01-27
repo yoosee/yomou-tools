@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 # coding: utf-8
 #
+# fetch multiple entries in Yomou Ranking page.
 #
 
 require 'rubygems'
@@ -24,6 +25,14 @@ MAX_TITLES_RANK = 100
 YOMOU_BASE_URL = 'https://ncode.syosetu.com/'
 YOMOU_BASE_DOMAIN = 'ncode.syosetu.com'
 YOMOU_RANK_DOMAIN = 'yomou.syosetu.com'
+
+class YomouItem
+  attr_accessor :url, :title
+  def initialize url, title
+    @url = url
+    @title = title
+  end
+end
 
 def get_code url
   code = nil
@@ -56,9 +65,12 @@ rankpage_url = 'https://yomou.syosetu.com/rank/list/type/quarter_total/' # ÂõõÂç
 
 options = {}
 OptionParser.new do |opts|
-  opts.banner = "Usage: yomou.rb [options] URL_OR_CODE"
+  opts.banner = "Usage: yomou.rb [options] URL_RANKING_PAGE"
   opts.on("-v", "--verbose", "Run verbosely") do |o|
     options[:verbose] = o
+  end
+  opts.on("-n N", "--number-fetch=N", "Number of items to be fetched in the Ranking.") do |o|
+    options[:n_fetch] = o
   end
   opts.on("-s NDAYS", "--skip-old=NDAYS", "Skip executing the entry last-run update was NDAYS before.") do |o|
     options[:skip] = o
