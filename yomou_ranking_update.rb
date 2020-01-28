@@ -64,6 +64,8 @@ end
 rankpage_url = 'https://yomou.syosetu.com/rank/list/type/quarter_total/' # 四半期総合ランクをデフォルト
 
 options = {}
+options[:n_fetch] = MAX_TITLES_RANK
+
 OptionParser.new do |opts|
   opts.banner = "Usage: yomou.rb [options] URL_RANKING_PAGE"
   opts.on("-v", "--verbose", "Run verbosely") do |o|
@@ -122,6 +124,6 @@ ranklist.each do |url|
   end
 
   n += 1
-  break if n > MAX_TITLES_RANK
+  break if n > options[:n_fetch]
 end
 
