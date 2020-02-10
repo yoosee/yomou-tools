@@ -102,6 +102,7 @@ ranklist = list_ranking page
 
 n = 0
 ranklist.each do |url|
+begin
   code = get_code url
   dir = "work/#{code}"
   opts = ""
@@ -125,5 +126,8 @@ ranklist.each do |url|
 
   n += 1
   break if n > options[:n_fetch]
+rescue
+  next
+end
 end
 
