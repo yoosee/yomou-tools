@@ -17,10 +17,11 @@ YOMOU = 'yomou.rb'
 KAKUYOMU = 'kakuyomu.rb'
 MERGER = 'yomou_merger.rb'
 BOOKLIST = 'booklist.txt'
+RANKINGLIST = 'rankinglist.txt'
 BOOKDIR  = 'books'
 UPDATEDIR = 'updates'
 
-MAX_TITLES_RANK = 100
+MAX_TITLES_RANK = 120
 
 YOMOU_BASE_URL = 'https://ncode.syosetu.com/'
 YOMOU_BASE_DOMAIN = 'ncode.syosetu.com'
@@ -99,6 +100,12 @@ rescue OpenURI::HTTPError
 end
 
 ranklist = list_ranking page
+
+rankingfilename = RANKINGLIST
+open(rankingfilename, 'a') do |file|
+  n = options[:n_fetch]
+  file.write ranklist[0..n].join("\n")
+end
 
 n = 0
 ranklist.each do |url|
