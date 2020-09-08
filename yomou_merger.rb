@@ -4,6 +4,8 @@
 require 'time'
 require 'fileutils'
 
+MAX_FILENAME_LENGTH=84
+
 bookdir = ARGV.shift
 unless File.directory? bookdir
   puts "no such directory: #{bookdir}"
@@ -21,7 +23,17 @@ unless info['title'] && info['author']
   puts "no title or author found."
   exit
 end
-bookfile = "#{bookdir}/#{info['title'].gsub(/\//, '／')}\ \[#{info['author']}\].txt"
+
+booktitle = info['title'].gsub(/\//, '／')
+bookfilename = "#{booktitle}\ \[#{info['author']}\].txt"
+# avoid filename is too long for POSIX system (255byte ~ 86 UTF-8 chars)
+if bookfilename.length > MAX_FILENAME_LENGTH
+  m = MAX_FILENAME_LENGTH - info['author'].length - 8 # space, [] and '.txt'
+  b = booktitle.slice(0..m)
+  bookfilename = "#{b}..\ \[#{info['author']}\].txt"
+end
+
+bookfile = "#{bookdir}/#{bookfilename}"
 
 puts "merging files into #{bookfile}"
 count_file = 0
