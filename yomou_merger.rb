@@ -13,6 +13,7 @@ unless File.directory? bookdir
 end
 
 is_escape_ruby = false
+is_book_title_canonical = true
 
 infofile = "#{bookdir}/info.txt"
 workdir = "#{bookdir}/work"
@@ -25,12 +26,18 @@ unless info['title'] && info['author']
 end
 
 booktitle = info['title'].gsub(/\//, '／')
-bookfilename = "#{booktitle}\ \[#{info['author']}\].txt"
+author = info['author']
+if is_book_title_canonical
+  booktitle.gsub!(/【.*?[章|完結|書籍|コミ|アニメ].*?】/, '')
+  booktitle.gsub!(/^ +/,'')
+  author = author.gsub(/\\(.+?\\)/, '').gsub(/（.+?）/, '')
+end
+bookfilename = "#{booktitle}\ \[#{author}\].txt"
 # avoid filename is too long for POSIX system (255byte ~ 86 UTF-8 chars)
 if bookfilename.length > MAX_FILENAME_LENGTH
-  m = MAX_FILENAME_LENGTH - info['author'].length - 8 # space, [] and '.txt'
+  m = MAX_FILENAME_LENGTH - author.length - 8 # space, [] and '.txt'
   b = booktitle.slice(0..m)
-  bookfilename = "#{b}..\ \[#{info['author']}\].txt"
+  bookfilename = "#{b}..\ \[#{author}\].txt"
 end
 
 bookfile = "#{bookdir}/#{bookfilename}"
@@ -39,7 +46,7 @@ puts "merging files into #{bookfile}"
 count_file = 0
 line = 0
 File.open(bookfile, 'w') do |book| 
-  book.puts "#{info['title']} [#{info['author']}]"
+  book.puts "#{info['title']} [#{author}]"
   book.puts 
   Dir.open(workdir).grep(/^\d+?\.txt/).sort{|a,b| a.gsub(/\.txt/,'').to_i <=> b.gsub(/\.txt/,'').to_i }.each do |file|
     File.open("#{workdir}/#{file}") do |f|
