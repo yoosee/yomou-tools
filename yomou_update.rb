@@ -62,7 +62,6 @@ File.open(booklist).each do |l|
     flag = (s[1].to_i == 1 ? true : false) if s[1]
     next unless /^http/ =~ url
     code = get_code url
-    puts "#{n_line}: #{uri}"
     if /syosetu\.com/ =~ url 
       opts = options[:nskip] ? "-s #{options[:nskip]}" : ""
       system "ruby #{YOMOU} #{opts} #{url}"

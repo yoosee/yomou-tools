@@ -104,7 +104,8 @@ ranklist = list_ranking page
 rankingfilename = RANKINGLIST
 open(rankingfilename, 'a') do |file|
   n = options[:n_fetch]
-  file.write ranklist[0..n].join("\n")
+  l = n.to_i > ranklist.size ? n : ranklist.size
+  file.write ranklist[0..l].join("\n")
 end
 
 n = 0
