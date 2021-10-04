@@ -21,7 +21,7 @@ RANKINGLIST = 'rankinglist.txt'
 BOOKDIR  = 'books'
 UPDATEDIR = 'updates'
 
-MAX_TITLES_RANK = 120
+MAX_TITLES_RANK = nil
 
 YOMOU_BASE_URL = 'https://ncode.syosetu.com/'
 YOMOU_BASE_DOMAIN = 'ncode.syosetu.com'
@@ -81,6 +81,9 @@ OptionParser.new do |opts|
   opts.on("-u", "--update-all-revised", "Fetch all updated content") do |o|
     options[:update] = o
   end
+  opts.on("-S SIZE[KB]", "--size-limit=SIZE[KB]", "limit copy file to UPDATEDIR if filesize smaller than parameter [KB]") do |o|
+    options[:size_limit] = o
+  end
 end.parse!
 
 arg = ARGV.shift
@@ -104,8 +107,12 @@ ranklist = list_ranking page
 rankingfilename = RANKINGLIST
 open(rankingfilename, 'a') do |file|
   n = options[:n_fetch]
-  l = n.to_i > ranklist.size ? n : ranklist.size
-  file.write ranklist[0..l].join("\n")
+  if n != nil
+    l = n.to_i > ranklist.size ? n : ranklist.size
+    file.write ranklist[0..l].join("\n")
+  else
+    file.write ranklist.join("\n")
+  end
 end
 
 n = 0
@@ -128,7 +135,11 @@ ranklist.each do |url|
     FileUtils.cp "#{dir}/#{bookname}", BOOKDIR
 
     FileUtils.mkdir UPDATEDIR unless Dir.exists? UPDATEDIR
-    puts "Copied to updates: #{bookname}" if options[:verbose]
+    if options[:size_limit] != nil && options[:size_limit].to_i * 1024 > File.new("#{dir}/#{bookname}").size
+       puts "Skip copying file to #{UPDATEDIR}: #{bookname}" if options[:verbose]
+       next
+    end
+    puts "Copied to #{UPDATEDIR}: #{bookname}" if options[:verbose]
     FileUtils.cp "#{dir}/#{bookname}", UPDATEDIR
     end
 

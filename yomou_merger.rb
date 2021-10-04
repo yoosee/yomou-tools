@@ -28,7 +28,7 @@ end
 booktitle = info['title'].gsub(/\//, '／')
 author = info['author']
 if is_book_title_canonical
-  booktitle.gsub!(/[【|『].*?[章|完結|書籍|コミ|アニメ|発売].*?[】|』]/, '')
+  booktitle.gsub!(/[【|『|＜].*?[章|完結|書籍|コミ|アニメ|発売].*?[】|』|＞]/, '')
   booktitle.gsub!(/^ +/,'')
   author = author.gsub(/\\(.+?\\)/, '').gsub(/（.+?）/, '')
 end

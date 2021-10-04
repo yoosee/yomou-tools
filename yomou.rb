@@ -23,9 +23,12 @@ def fetch_url url, filename
   if File.exists? filename
     rotate_file filename
   end
+  #### tentative
+  cookies = "" # auth session cookie
   open(filename, 'w') do |file|
-    open(url,
-         "User-Agent" => USER_AGENT) do |data|
+    URI.open(url, {
+         "User-Agent" => USER_AGENT,
+         "Cookie" => cookies } ) do |data|
       file.write data.read
     end
   end
@@ -232,7 +235,7 @@ if options[:skip]
 end
 
 begin 
-  page = Nokogiri::HTML(open(url))
+  page = Nokogiri::HTML(URI.open(url))
 rescue OpenURI::HTTPError
   puts "[Error] #{$!} on fetching #{yomou_code}"
   exit

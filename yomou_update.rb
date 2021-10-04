@@ -42,6 +42,9 @@ OptionParser.new do |op|
   op.on("-s NDAYS", "--skip=NDAYS", "skip checking site previous update was NDAYS before") do |o|
     options[:nskip] = o
   end
+  op.on("-S SIZE[KB]", "--size-limit=SIZE[KB]", "limit copy file to UPDATEDIR if filesize smaller than parameter [KB]") do |o|
+    options[:size_limit] = o
+  end
 end.parse!
 
 booklist = (options[:booklist_file] ? options[:booklist_file] : BOOKLIST)
@@ -95,7 +98,11 @@ File.open(booklist).each do |l|
     FileUtils.cp "#{d}/#{bookname}", BOOKDIR
     if flag
       FileUtils.mkdir UPDATEDIR unless Dir.exists? UPDATEDIR
-      puts "Copied to updates: #{bookname}" if options[:verbose]
+      if options[:size_limit] != nil && options[:size_limit].to_i * 1024 > File.new("#{d}/#{bookname}").size
+        puts "Skip copying file to #{UPDATEDIR}: #{bookname}" if options[:verbose]
+        next
+      end
+      puts "Copied to #{UPDATEDIR}: #{bookname}" if options[:verbose]
       FileUtils.cp "#{d}/#{bookname}", UPDATEDIR
     end
     end
