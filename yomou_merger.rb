@@ -13,7 +13,7 @@ unless File.directory? bookdir
 end
 
 is_escape_ruby = false
-is_book_title_canonical = true
+use_book_title_canonical = true
 
 infofile = "#{bookdir}/info.txt"
 workdir = "#{bookdir}/work"
@@ -25,13 +25,14 @@ unless info['title'] && info['author']
   exit
 end
 
-booktitle = info['title'].gsub(/\//, '／')
-author = info['author']
-if is_book_title_canonical
-  booktitle.gsub!(/[（|【|『|＜].*?[章|完結|書籍|コミ|アニメ|発売].*?[）|】|』|＞]/, '')
-  booktitle.gsub!(/^ +/,'')
-  author = author.gsub(/\\(.+?\\)/, '').gsub(/（.+?）/, '')
+if use_book_title_canonical && (info['title_canonical'] && info['author_canonical'])
+  booktitle = info['title_canonical']
+  author = info['author_canonical']
+else
+  booktitle = info['title'].gsub(/\//, '／')
+  author = info['author']
 end
+
 bookfilename = "#{booktitle}\ \[#{author}\].txt"
 # avoid filename is too long for POSIX system (255byte ~ 86 UTF-8 chars)
 if bookfilename.length > MAX_FILENAME_LENGTH

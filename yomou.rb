@@ -145,10 +145,22 @@ def list_updated page, yomou_code, last_run
   return updated
 end
 
+def canonical_title title
+  t = title.gsub(/[≪|（|【|『|＜].*?[巻|web版|章|完結|書籍|コミ|アニメ|発売].*?[）|】|』|＞|≫]/i, '').gsub(/^ +/,'').gsub(/\//, '／')
+  return t
+end
+
+def canonical_author author
+  a = author.gsub(/\\(.+?\\)/, '').gsub(/（.+?）/, '')
+  return a
+end
+
 def update_infofile filename, title, author, update, run, new_stories
   f = File.open(filename,"w")
   f.puts "title: #{title}"
+  f.puts "title_canonical: #{canonical_title(title)}"
   f.puts "author: #{author}"
+  f.puts "author_canonical: #{canonical_author(author)}"
   f.puts "last_updated: #{update}"
   f.puts "last_run: #{run}"
   f.puts "new_stories: #{new_stories}"
