@@ -88,7 +88,7 @@ File.open(booklist).each do |l|
     end
 
     system "ruby #{MERGER} #{Shellwords.escape d}"
-    bookname = "#{info['title']}\ \[#{info['author']}\].txt"
+    bookname = "#{info['title_canonical']}\ \[#{info['author_canonical']}\].txt"
 
     if ! File.exist?("#{BOOKDIR}/#{bookname}") || 
         (File.exist?("#{d}/#{bookname}") && 
